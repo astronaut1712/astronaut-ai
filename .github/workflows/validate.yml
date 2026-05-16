@@ -1,0 +1,52 @@
+name: Validate manifests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON syntax
+        run: |
+          for f in .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json; do
+            echo "Checking $f"
+            python3 -m json.tool "$f" > /dev/null
+          done
+
+      - name: Validate skills have frontmatter
+        run: |
+          for skill in plugins/*/skills/*/SKILL.md; do
+            echo "Checking $skill"
+            head -1 "$skill" | grep -q '^---$' || (echo "Missing frontmatter: $skill" && exit 1)
+            grep -q '^name:' "$skill" || (echo "Missing name field: $skill" && exit 1)
+            grep -q '^description:' "$skill" || (echo "Missing description field: $skill" && exit 1)
+          done
+
+      - name: Validate commands have frontmatter
+        run: |
+          for cmd in plugins/*/commands/*.md; do
+            echo "Checking $cmd"
+            head -1 "$cmd" | grep -q '^---$' || (echo "Missing frontmatter: $cmd" && exit 1)
+            grep -q '^description:' "$cmd" || (echo "Missing description field: $cmd" && exit 1)
+          done
+
+      - name: Check shell scripts syntax
+        run: |
+          bash -n install.sh
+          bash -n setup-and-push.sh
+          for hook in plugins/*/hooks/*.sh; do
+            echo "Checking $hook"
+            bash -n "$hook"
+          done
+
+      - name: Check hooks are executable
+        run: |
+          for hook in plugins/*/hooks/*.sh; do
+            [ -x "$hook" ] || (echo "Not executable: $hook" && exit 1)
+          done

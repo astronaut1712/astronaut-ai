@@ -1,0 +1,39 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test artifacts from install.sh dry-runs
+test-install*/
+/.claude/
+/.opencode/
+
+# Mina workflow state — gitignored by default; uncomment .mina/tokens/ line below
+# to share cost data with team
+.mina/state.json
+.mina/checkpoints/
+
+# Optional: also ignore tokens (cost data per change). Comment out if your team
+# wants visibility into spend attribution.
+.mina/tokens/
+
+# Legacy path (pre-1.3) — safe to remove if you've migrated
+.tokens/
+
+# Credentials — never commit
+.mcp.json
+.env
+.env.*
+!.env.example

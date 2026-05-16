@@ -1,0 +1,35 @@
+{
+  "$comment": "Spec-driven plugin: model routing & fallback configuration. Copy this to <project>/model-routing.json and adjust per team preferences. Plugin commands /model-route and /model-switch read from this file.",
+
+  "primary": "claude-opus-4-7",
+  "cheap": "claude-sonnet-4-7",
+  "emergency": "claude-haiku-4-5",
+  "backup_provider": null,
+
+  "$comment_backup_provider": "Set to a string like 'api:claude-opus-4-7' to indicate BYOK API key mode, or 'gateway:openrouter/anthropic/claude-opus-4-7' for a gateway. The plugin doesn't auto-switch providers — this is informational so /model-switch can show the right command to user.",
+
+  "cost_cap_usd": 5.0,
+  "$comment_cost_cap": "Per-change cost ceiling. When .mina/tokens/<change>.jsonl total exceeds this, /model-route recommends 'cheap' tier for remaining work. Set 0 to disable.",
+
+  "context_warn_pct": 80,
+  "$comment_context": "Statusline turns context % yellow above this, red above 95. Doesn't auto-switch — context overflow is a /clear or /compact problem, not a model problem.",
+
+  "subagent_tier": "cheap",
+  "$comment_subagent": "Tier to use for GSD/Superpowers subagents. Each subagent runs an independent context. N parallel × Opus = catastrophic cost. Default 'cheap' is almost always correct.",
+
+  "high_stakes_keywords": [
+    "security", "auth", "payment", "billing", "migration", "production",
+    "encryption", "secret", "credential", "compliance", "audit", "legal"
+  ],
+  "$comment_high_stakes": "If user's task description contains any of these, /model-route recommends 'primary' regardless of cost. Quality > cost for high-stakes work.",
+
+  "execute_phase_tier": "cheap",
+  "$comment_execute": "Default tier for GSD execute / Superpowers execute-plan when spec has clear AC. Override to 'primary' if your team prefers quality even for mechanical impl.",
+
+  "fallback_chain_on_429": ["primary", "backup_provider", "cheap"],
+  "fallback_chain_on_529": ["primary", "primary", "primary", "backup_provider"],
+  "$comment_chains": "Order in which to try tiers when each error type hits. 529 chain retries primary 3x with backoff before falling back (overload is usually transient). 429 (your account rate limit) needs a different account/provider to recover, so it goes straight to backup_provider.",
+
+  "auto_return_to_primary": true,
+  "$comment_return": "After fallback, automatically suggest returning to primary at next natural break (new change, /clear, session restart). Prevents quality drift."
+}

@@ -1,0 +1,39 @@
+// Claude Code settings.json — example showing how to wire up the
+// mina plugin's statusline hook.
+//
+// Place at:
+//   ~/.claude/settings.json           (user scope)
+//   <project>/.claude/settings.json   (project scope, commit to git)
+//
+// When installed via marketplace, ${CLAUDE_PLUGIN_ROOT} resolves to the
+// plugin's installation directory. When manually installed into .claude/,
+// use an absolute path or $HOME-relative path instead.
+
+{
+  // Statusline: displays cost + context + active change after each turn,
+  // and logs each turn's token delta to .mina/tokens/<change>.jsonl
+  "statusLine": {
+    "type": "command",
+    "command": "${CLAUDE_PLUGIN_ROOT}/hooks/statusline.sh",
+    "padding": 0
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Alternative: use ccusage's statusline instead (more features but
+  // doesn't write per-change logs)
+  //
+  // "statusLine": {
+  //   "type": "command",
+  //   "command": "npx ccusage statusline",
+  //   "padding": 0
+  // }
+  //
+  // ────────────────────────────────────────────────────────────────
+  // Alternative: manual install path (no marketplace)
+  //
+  // "statusLine": {
+  //   "type": "command",
+  //   "command": "$HOME/path/to/astronaut-ai/plugins/mina/hooks/statusline.sh",
+  //   "padding": 0
+  // }
+}

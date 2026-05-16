@@ -1,0 +1,37 @@
+// .mcp.json — Atlassian MCP server config (Claude Code)
+// Place at project root and commit (without credentials).
+//
+// Inject ATLASSIAN_AUTH from your shell env:
+//   AUTH=$(echo -n "your-email@company.com:your-api-token" | base64)
+//   export ATLASSIAN_AUTH=$AUTH
+//
+// API tokens are more stable than OAuth SSE for terminal workflows.
+// Create at: https://id.atlassian.com/manage-profile/security/api-tokens
+
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "https://mcp.atlassian.com/v1/mcp",
+        "--header",
+        "Authorization: Basic ${ATLASSIAN_AUTH}"
+      ]
+    }
+  }
+}
+
+// For opencode, add to ~/.config/opencode/opencode.json under "mcp":
+//
+// {
+//   "mcp": {
+//     "atlassian": {
+//       "type": "local",
+//       "command": ["npx", "-y", "mcp-remote@latest",
+//                   "https://mcp.atlassian.com/v1/mcp",
+//                   "--header", "Authorization: Basic ${ATLASSIAN_AUTH}"]
+//     }
+//   }
+// }

@@ -1,0 +1,28 @@
+{
+  "name": "mina",
+  "owner": {
+    "name": "astronaut1712",
+    "url": "https://github.com/astronaut1712"
+  },
+  "plugins": [
+    {
+      "name": "mina",
+      "source": "./plugins/mina",
+      "description": "Spec-driven coding workflow plugin. Wires Jira → OpenSpec → GSD/Superpowers → code → Jira, with per-change token tracking, model fallback routing, progress aggregation, session/process resume, and named checkpoints. Seven skills, eleven commands, statusline hook, unified .mina/ state layout.",
+      "version": "1.3.0",
+      "category": "workflow",
+      "keywords": [
+        "jira",
+        "spec-driven",
+        "openspec",
+        "gsd",
+        "superpowers",
+        "atlassian",
+        "cost-tracking",
+        "model-fallback",
+        "progress-tracking",
+        "session-resume"
+      ]
+    }
+  ]
+}

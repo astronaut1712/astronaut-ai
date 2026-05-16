@@ -1,0 +1,61 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "$comment": "Spec-driven plugin: opencode config with multi-provider fallback approach.",
+
+  "$comment_strategy": "opencode does not yet have native model fallback chains (open issue #7602/#8687). Workaround: configure multiple providers + use small_model for cheap tasks + use a gateway provider (LiteLLM, OpenRouter, TokenMix) as a fallback bridge.",
+
+  "model": "anthropic/claude-opus-4-7",
+  "small_model": "anthropic/claude-haiku-4-5",
+
+  "provider": {
+    "$comment_anthropic": "Primary provider. Uses subscription or ANTHROPIC_API_KEY.",
+    "anthropic": {
+      "options": {
+        "timeout": 60000,
+        "chunkTimeout": 30000
+      }
+    },
+
+    "$comment_byok": "Backup: direct API key for when subscription window exhausted. opencode will use ANTHROPIC_API_KEY env var if subscription auth absent. To force BYOK, set OPENCODE_DISABLE_SUBSCRIPTION=1.",
+
+    "$comment_gateway": "Optional: gateway provider for true fallback across providers. Examples below. Pick one that fits your billing setup.",
+
+    "openrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "OpenRouter (fallback)",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      },
+      "models": {
+        "anthropic/claude-opus-4-7": {
+          "name": "Claude Opus 4.7 (via OpenRouter)"
+        },
+        "anthropic/claude-sonnet-4-7": {
+          "name": "Claude Sonnet 4.7 (via OpenRouter)"
+        }
+      }
+    },
+
+    "$comment_litellm": "Self-hosted LiteLLM gateway example. Most robust for team-level fallback — LiteLLM handles 429/529 retry + multi-provider routing upstream.",
+    "litellm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LiteLLM Gateway",
+      "options": {
+        "baseURL": "https://litellm.your-company.com/v1",
+        "apiKey": "{env:LITELLM_API_KEY}"
+      },
+      "models": {
+        "claude-opus-fallback": {
+          "name": "Claude Opus (with auto-fallback to GPT/Gemini)"
+        }
+      }
+    }
+  },
+
+  "$comment_disabled": "Disable providers you don't want auto-loaded even if credentials exist.",
+  "disabled_providers": [],
+
+  "$comment_instructions": "Project-level instructions read on every session. Point at the mina plugin's CLAUDE.md snippet for consistency.",
+  "instructions": ["AGENTS.md", "CLAUDE.md"]
+}
