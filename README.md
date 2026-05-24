@@ -1,6 +1,6 @@
 # astronaut-ai
 
-Claude Code plugin marketplace + opencode-compatible bundle for spec-driven development. Wires **Jira → OpenSpec → GSD/Superpowers → code → Jira** into one pipeline.
+Spec-driven development bundle for **six AI coding CLIs**. Wires **Jira → OpenSpec → GSD/Superpowers → code → Jira** into one pipeline. Native plugin for Claude Code; `install.sh` ports the same skills + commands into opencode, Codex, Pi, Kiro, and Kilo Code.
 
 ```
 Jira  →  /jira-pick → /jira-to-spec  →  OpenSpec  →  /spec-to-plan  →  GSD or Superpowers
@@ -14,31 +14,53 @@ Jira  →  /jira-pick → /jira-to-spec  →  OpenSpec  →  /spec-to-plan  → 
                                                                       Jira: commented (transition stays manual)
 ```
 
+## Supported tools
+
+| Tool | Fidelity | Install path | Skills | Slash commands | Statusline |
+|---|---|---|---|---|---|
+| [Claude Code](https://claude.com/claude-code) | ★★★★★ Native | marketplace · `install.sh claude-code` | Auto-trigger | `/mina:<cmd>` (marketplace) · `/<cmd>` (manual) | ✅ |
+| [opencode](https://opencode.ai) | ★★★★★ Native | `install.sh opencode` | Auto-trigger | `/<cmd>` | — |
+| [Codex](https://github.com/openai/codex) | ★★★★ Close | `install.sh codex` | `/skills` lists, agent picks | `/<cmd>` from `.codex/prompts/` | — |
+| [Pi](https://github.com/earendil-works/pi) | ★★★★ Close | `install.sh pi` · or `pi install git:github.com/astronaut1712/astronaut-ai` | Loaded via `pi config` | `/<cmd>` from `prompts/` | — |
+| [Kiro](https://kiro.dev) | ★★ Lossy | `install.sh kiro` | Always-on steering (no auto-trigger) | None — see `mina-commands-reference.md` | — |
+| [Kilo Code](https://kilocode.ai) | ★★ Lossy | `install.sh kilo` | Always-on rules (no auto-trigger) | None — see `mina-commands-reference.md` | — |
+
+**Fidelity legend:**
+- **Native** — official plugin surface; full skill auto-triggering, slash commands, hooks
+- **Close** — skill + slash-command system maps 1:1; frontmatter may need light cleaning (Codex strips `tools`/`model`)
+- **Lossy** — host has no slash-command system; skills install as always-on rules instead of auto-triggered ones. The full workflow is preserved as a concatenated reference doc the user pastes from or asks the agent to follow
+
+Pick the right install path per tool below.
+
 ## Install
 
 ```bash
-# Claude Code (recommended)
+# Claude Code (recommended — marketplace, no clone)
 /plugin marketplace add astronaut1712/astronaut-ai
-/plugin install mina@mina        # commands become /mina:<cmd>
+/plugin install mina@mina                  # commands become /mina:<cmd>
 
-# Any other supported tool
+# Pi (recommended — no clone)
+pi install git:github.com/astronaut1712/astronaut-ai
+pi config                                  # enable installed skills + prompts
+
+# Everything else (clone + install.sh)
 git clone https://github.com/astronaut1712/astronaut-ai.git && cd astronaut-ai
-./install.sh <target>            # claude-code | opencode | codex | pi | kiro | kilo | both | all
-                                 # add --user for global scope
+./install.sh <target>                      # opencode | codex | pi | kiro | kilo | claude-code | both | all
+                                           # add --user for global scope
 ```
 
-Supported targets:
+`./install.sh all` installs every supported tool at project scope in one shot. The interactive picker (`./install.sh` with no args) walks the 9 choices if you'd rather not memorize target names.
 
-| Target | Layout written | Commands surface |
-|---|---|---|
-| `claude-code` | `.claude/{skills,commands}/` | `/<name>` (manual) or `/mina:<name>` (marketplace) |
-| `opencode` | `.opencode/{skills,command}/` | `/<name>` |
-| `codex` | `.codex/{skills,prompts}/` | `/<name>` (frontmatter cleaned — `tools`/`model` dropped) |
-| `pi` | `.pi/agent/git/astronaut-ai/{skills,prompts}/` | `/<name>` after `pi config` (or `pi install git:github.com/astronaut1712/astronaut-ai`) |
-| `kiro` | `.kiro/steering/` | No slash commands — workflow steps in `mina-commands-reference.md` |
-| `kilo` | `.kilocode/rules/` | No slash commands — workflow steps in `mina-commands-reference.md` |
+### Per-tool layout written
 
-Marketplace install gives namespaced commands (`/mina:review`); manual install gives flat (`/review`). Kiro/Kilo skills become always-on rules (no auto-trigger semantics).
+| Target | Layout written |
+|---|---|
+| `claude-code` | `.claude/{skills,commands}/` |
+| `opencode` | `.opencode/{skills,command}/` |
+| `codex` | `.codex/{skills,prompts}/` — SKILL.md frontmatter cleaned (`tools:`/`model:` dropped per Codex spec) |
+| `pi` | `.pi/agent/git/astronaut-ai/{skills,prompts}/` + auto-generated `package.json` (Pi manifest) |
+| `kiro` | `.kiro/steering/<skill>.md` (flat rules) + `.kiro/steering/mina-commands-reference.md` (workflow steps) |
+| `kilo` | `.kilocode/rules/<skill>.md` + `.kilocode/rules/mina-commands-reference.md` |
 
 ## Commands
 
@@ -139,9 +161,14 @@ git push --tags && git push
 
 ## Verify install
 
-```
-/help    # should show /mina:jira-pick, /mina:jira-to-spec, /mina:spec-to-plan, /mina:review, /mina:jira-update, /mina:complete
-```
+| Tool | Verify command | Expected |
+|---|---|---|
+| Claude Code | `/help` | `/mina:jira-pick`, `/mina:jira-to-spec`, `/mina:spec-to-plan`, `/mina:review`, `/mina:jira-update`, `/mina:complete` |
+| opencode | `/help` | Same commands, flat namespace (`/jira-pick` etc.) |
+| Codex | `/skills` then `/<cmd>` | Seven skills listed; `/<cmd>` invokes prompts from `.codex/prompts/` |
+| Pi | `pi list` | `astronaut-ai` shown; `pi config` enables skills + prompts |
+| Kiro | open project | Steering files auto-load; no slash commands — `.kiro/steering/mina-commands-reference.md` is the index |
+| Kilo Code | open project | Rules auto-load; same reference doc at `.kilocode/rules/mina-commands-reference.md` |
 
 ## License
 
