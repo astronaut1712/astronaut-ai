@@ -39,7 +39,7 @@ When the user asks to "plan" or "implement" a feature:
 
 ### Anti-patterns
 
-- ❌ Auto-transition Jira status without confirm
+- ❌ Transition Jira status from `/mina:*` commands. Plugin commands post comments only; transitioning is the user's manual action (Jira UI or `acli jira workitem transition`).
 - ❌ Create Jira issues without explicit user request
 - ❌ Run `/superpowers:write-plan` AND `/gsd-plan-phase` on the same change
 - ❌ Brainstorm requirements when OpenSpec change already exists

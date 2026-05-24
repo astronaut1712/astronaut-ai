@@ -33,23 +33,31 @@ This skill handles both. Background process tracking is bonus.
     "phase": "03",
     "plan": "03-03-PLAN.md",
     "jira_key": "ENG-1234",
-    "since": "2026-05-14T09:00:00Z"
+    "since": "2026-05-14T09:00:00Z",
+    "recommended_model": "claude-sonnet-4-7",
+    "recommended_reason": "GSD execute phase with clear AC",
+    "active_tier": "cheap",
+    "switch_reason": "cost cap exceeded"
   },
   "sessions": [
     {"id": "abc12345", "started_at": "...", "change": "...", "status": "active"}
   ],
   "background_processes": [
-    {"pid": 12384, "command": "npm run dev", "started_at": "...", "log_path": "..."}
+    {"pid": 12384, "command": "npm run dev", "started_at": "...", "log_path": "...", "hostname": "macbook-quang"}
   ],
   "checkpoints": [
-    {"name": "before-refactor", "timestamp": "...", "change": "...", "git_commit": "abc1234", "notes": "..."}
+    {"name": "before-refactor", "timestamp": "...", "git_commit": "abc1234", "notes": "..."}
   ],
   "history": [
     {"ts": "...", "event": "change_started", "change": "..."},
-    {"ts": "...", "event": "phase_started", "phase": "03"}
+    {"ts": "...", "event": "phase_started", "phase": "03"},
+    {"ts": "...", "event": "model_switch", "tier": "cheap", "model": "claude-sonnet-4-7"},
+    {"ts": "...", "event": "reviewed", "change": "...", "verdict": "APPROVE WITH NITS"}
   ]
 }
 ```
+
+State schema is versioned independently of the plugin version. Schema `"1.3"` was introduced in plugin 1.3.0 and is still current as of plugin 1.4.0; the 1.4 changes are additive optional fields, no migration required.
 
 ## Resume strategies
 

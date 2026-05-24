@@ -22,8 +22,12 @@ This does NOT modify your code — it only snapshots workflow state (active chan
 ## Save
 
 ```bash
-NAME="$1"
-NOTES="${@:2}"
+# $ARGUMENTS is a single string from the slash command. Split into first word + rest.
+NAME="${ARGUMENTS%% *}"
+case "$ARGUMENTS" in
+  *' '*) NOTES="${ARGUMENTS#* }" ;;
+  *)     NOTES="" ;;
+esac
 
 # Sanitize name
 NAME=$(echo "$NAME" | tr -c 'a-zA-Z0-9_-' '-' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
@@ -100,15 +104,12 @@ mid-session-paused   2026-05-14T15:30:00Z   change: feat-add-dashboard-ssr   pha
 ## --restore
 
 ```bash
-NAME="$2"
+NAME="${ARGUMENTS#--restore }"
 CKPT=".mina/checkpoints/$NAME.json"
 [ -f "$CKPT" ] || { echo "No checkpoint named '$NAME'"; exit 1; }
 
-# Save current state as <name>-previous (so restore is reversible)
-PREV_NAME="${NAME}-previous-$(date +%s)"
-cp .mina/state.json ".mina/checkpoints/$PREV_NAME.json"
-
 # Show what will change
+PREV_NAME="${NAME}-previous-$(date +%s)"
 echo "Will restore state from checkpoint '$NAME'."
 echo ""
 echo "Current → Checkpoint:"
@@ -122,10 +123,22 @@ echo ""
 read -p "Proceed? [y/N] " ANS
 [ "$ANS" = "y" ] || exit 0
 
-# Restore (strip checkpoint_meta from the restored file)
-jq 'del(.checkpoint_meta) | .history += [{"ts": (now|todate), "event": "restored_from_checkpoint", "name": "'$NAME'"}]' \
-  "$CKPT" > .mina/state.json
-echo "✓ Restored. Run /mina:status to verify."
+# Backup current state ONLY after confirmation (aborted restore leaves no junk)
+cp .mina/state.json ".mina/checkpoints/$PREV_NAME.json"
+
+# Restore atomically: write to tmp, size-check, then mv. Strip checkpoint_meta.
+TMP=$(mktemp -t mina-state-XXXX) || { echo "mktemp failed"; exit 1; }
+jq --arg name "$NAME" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  'del(.checkpoint_meta) | .history += [{ts:$ts, event:"restored_from_checkpoint", name:$name}]' \
+  "$CKPT" > "$TMP"
+if [ -s "$TMP" ]; then
+  mv "$TMP" .mina/state.json
+  echo "✓ Restored. Run /mina:status to verify."
+else
+  rm -f "$TMP"
+  echo "✗ jq produced empty output; state.json untouched."
+  exit 1
+fi
 ```
 
 ## --diff

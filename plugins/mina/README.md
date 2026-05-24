@@ -17,7 +17,7 @@ GSD phase (.planning/phases/NN-…/)  OR  Superpowers plan
 Code + tests + commits
    │ /jira-update feat-…
    ▼
-Jira: commented, transitioned
+Jira: commented (transition stays manual)
 ```
 
 ## What this plugin provides
@@ -32,12 +32,13 @@ Jira: commented, transitioned
 - `progress-tracking` — aggregates OpenSpec tasks + GSD plans + git state + cost into a unified view; surfaces mini-status at session start and after task completion
 - `process-resume` — maps prior sessions / changes / background processes to a clear resume path; covers both Claude Code session resume and workflow resume
 
-**Twelve slash commands:**
+**Thirteen slash commands:**
 
 - `/mina:jira-pick` — list Jira issues and pick one to start
 - `/mina:jira-to-spec <KEY>` — convert Jira issue → OpenSpec change (initializes `.mina/state.json`)
 - `/mina:spec-to-plan <change-name>` — bridge OpenSpec → GSD or Superpowers plan
-- `/mina:jira-update <change-or-key>` — write back to Jira after implementation
+- `/mina:jira-update <change-or-key>` — post implementation summary as a Jira comment (no status transition; user owns that)
+- `/mina:complete [change] [--no-confirm]` — mark active change complete; clears `.active.*` so the statusline drops the change segment (local pointer only; does not touch Jira / openspec / code)
 - `/mina:review [change | --staged | --branch | --since=<ref>]` — read-only review of changes against the active OpenSpec change; severity-tagged report with verdict
 - `/mina:token-report [scope]` — token usage and cost report, per-change or aggregate
 - `/mina:model-route [task]` — show recommended model + reason

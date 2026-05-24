@@ -11,7 +11,7 @@ Jira  →  /jira-pick → /jira-to-spec  →  OpenSpec  →  /spec-to-plan  → 
                                                               /review · /jira-update
                                                                               │
                                                                               ▼
-                                                                      Jira: commented, transitioned
+                                                                      Jira: commented (transition stays manual)
 ```
 
 ## Install
@@ -36,7 +36,8 @@ Marketplace install gives namespaced commands (`/mina:review`); manual install g
 | `/mina:jira-to-spec <KEY>` | Convert Jira issue → OpenSpec change; initializes `.mina/state.json` |
 | `/mina:spec-to-plan <change>` | Bridge OpenSpec → GSD phase or Superpowers plan |
 | `/mina:review [scope]` | Read-only review of diff vs spec; severity-tagged verdict (`--staged`, `--branch`, `--since=<ref>`) |
-| `/mina:jira-update <change\|key>` | Close the Jira loop with summary comment + transition (always confirms) |
+| `/mina:jira-update <change\|key>` | Post implementation summary as a Jira comment (confirm before write). Does NOT transition status — user owns that |
+| `/mina:complete [change] [--no-confirm]` | Mark active change complete; clears `.active.*` so statusline drops the change segment. Local pointer only — does not touch code, Jira, or openspec/ |
 | `/mina:status [change\|--mini]` | Aggregated status: change, plans, git, cost, processes |
 | `/mina:resume [change\|session]` | Pick up where you left off (workflow or Claude Code session) |
 | `/mina:checkpoint <name> [--list\|--restore\|--diff]` | Named state snapshots (state + git correlation, code untouched) |
@@ -127,7 +128,7 @@ git push --tags && git push
 ## Verify install
 
 ```
-/help    # should show /mina:jira-pick, /mina:jira-to-spec, /mina:spec-to-plan, /mina:review, /mina:jira-update
+/help    # should show /mina:jira-pick, /mina:jira-to-spec, /mina:spec-to-plan, /mina:review, /mina:jira-update, /mina:complete
 ```
 
 ## License

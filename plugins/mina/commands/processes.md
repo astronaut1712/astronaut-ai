@@ -69,18 +69,25 @@ Hints:
 ## --prune
 
 ```bash
-TMP=$(mktemp)
-jq '.background_processes |= map(select(. as $p | ($p.pid | tostring | test("^[0-9]+$"))))' "$STATE" > "$TMP"
-# Filter to alive only
-jq -c '.background_processes[]' "$STATE" | while read entry; do
+TMP=$(mktemp -t mina-state-XXXX) || exit 1
+ALIVE_FILE=$(mktemp -t mina-alive-XXXX) || { rm -f "$TMP"; exit 1; }
+
+# Collect alive PID entries (use -r to avoid backslash mangling)
+jq -c '.background_processes[]?' "$STATE" 2>/dev/null | while IFS= read -r entry; do
   PID=$(echo "$entry" | jq -r '.pid')
   kill -0 "$PID" 2>/dev/null && echo "$entry"
-done > /tmp/mina-alive.jsonl
+done > "$ALIVE_FILE"
 
-ALIVE=$(jq -s . /tmp/mina-alive.jsonl)
-jq --argjson alive "$ALIVE" '.background_processes = $alive' "$STATE" > "$TMP" && mv "$TMP" "$STATE"
-rm /tmp/mina-alive.jsonl
-echo "Pruned dead entries. Remaining: $(jq '.background_processes | length' $STATE)"
+ALIVE=$(jq -s . "$ALIVE_FILE")
+jq --argjson alive "$ALIVE" '.background_processes = $alive' "$STATE" > "$TMP"
+if [ -s "$TMP" ]; then
+  mv "$TMP" "$STATE"
+  echo "Pruned dead entries. Remaining: $(jq '.background_processes | length' "$STATE")"
+else
+  rm -f "$TMP"
+  echo "✗ jq produced empty output; state.json untouched."
+fi
+rm -f "$ALIVE_FILE"
 ```
 
 CONFIRM with user first, list what will be removed.
@@ -102,10 +109,26 @@ echo "Will send SIGTERM to PID $PID ($CMD)."
 read -p "Confirm? [y/N] " ANS
 [ "$ANS" = "y" ] || exit 0
 
+# Sanity-check: PID may have been reused by the OS. Compare current `ps` command
+# against the tracked command before killing.
+TRACKED_CMD=$(echo "$TRACKED" | jq -r '.command')
+LIVE_CMD=$(ps -p "$PID" -o command= 2>/dev/null | head -c 200)
+case "$LIVE_CMD" in
+  *"$TRACKED_CMD"*) ;;
+  *)
+    echo "⚠ PID $PID currently runs: $LIVE_CMD"
+    echo "   Tracked as:             $TRACKED_CMD"
+    read -p "PID may have been reused. Kill anyway? [y/N] " ANS2
+    [ "$ANS2" = "y" ] || exit 0
+    ;;
+esac
+
 kill "$PID" 2>/dev/null && echo "Sent SIGTERM" || echo "Failed (already dead?)"
 
-# Remove from state
-jq --arg pid "$PID" '.background_processes |= map(select(.pid != ($pid | tonumber)))' "$STATE" > "$STATE.tmp" && mv "$STATE.tmp" "$STATE"
+# Remove from state (atomic via mktemp)
+TMP=$(mktemp -t mina-state-XXXX) || exit 1
+jq --arg pid "$PID" '.background_processes |= map(select(.pid != ($pid | tonumber)))' "$STATE" > "$TMP"
+[ -s "$TMP" ] && mv "$TMP" "$STATE" || { rm -f "$TMP"; echo "✗ jq empty output; state.json untouched."; exit 1; }
 ```
 
 ## --register <pid> "<description>"

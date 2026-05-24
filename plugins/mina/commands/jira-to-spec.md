@@ -225,31 +225,35 @@ fi
 
 Phase and plan will be filled in later by `/spec-to-plan`.
 
-## Step 10 — Update Jira
+## Step 10 — Post link comment to Jira
 
 ASK user before doing this:
 
 ```
 Spec scaffolded at openspec/changes/<change-name>/.
-About to:
-  1. Transition ENG-1234 → "In Progress" (if not already)
-  2. Add comment linking to OpenSpec change
+About to add a comment to ENG-1234 linking to the new OpenSpec change.
+
+No status transition will be made — `/mina:*` commands post comments only.
+If the ticket needs to move to "In Progress", do it yourself in Jira or via
+`acli jira workitem transition <KEY> --status "In Progress"` (documented in
+the `jira-via-acli` skill).
+
 Proceed? [Y/n]
 ```
 
-If yes:
+If yes, post the comment via Atlassian MCP `jira_add_comment` (preferred) or acli fallback:
 
 ```bash
-# Transition (use jira-via-acli skill if MCP unavailable)
-acli jira workitem transition $ARGUMENTS --status "In Progress"
-
-# Comment
 acli jira workitem comment $ARGUMENTS --body "🤖 OpenSpec change created: \`<change-name>\`
 
 Tracking implementation in openspec/changes/<change-name>/
 
 Next: /spec-to-plan <change-name>"
 ```
+
+Do NOT call `acli jira workitem transition` from this command. If the user
+wants the ticket marked "In Progress", they do that themselves — the syntax
+is documented in the `jira-via-acli` skill.
 
 ## Step 11 — Next-step prompt
 

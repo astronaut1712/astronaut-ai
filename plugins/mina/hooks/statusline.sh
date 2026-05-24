@@ -237,10 +237,28 @@ if [ -n "$ACTIVE_CHANGE" ]; then
     CHANGE_DIR="$PROJ_DIR/openspec/changes/$ACTIVE_CHANGE"
     TASKS_FILE="$CHANGE_DIR/tasks.md"
 
-    # 1. Artifact-level progress via openspec CLI (authoritative)
-    # Run from PROJ_DIR so openspec finds the project. Suppress all output on failure.
+    # 1. Artifact-level progress via openspec CLI (authoritative).
+    #    Cache by tasks.md mtime so we only re-invoke openspec when the change
+    #    actually moved — avoids ~200-500ms per assistant message on large repos.
     if [ -d "$CHANGE_DIR" ] && command -v openspec >/dev/null 2>&1; then
-      OS_STATUS_JSON=$(cd "$PROJ_DIR" && openspec status --change "$ACTIVE_CHANGE" --json 2>/dev/null)
+      CACHE_DIR="$PROJ_DIR/.mina"
+      CACHE_FILE="$CACHE_DIR/.statusline-cache-$ACTIVE_CHANGE.json"
+      TASKS_MTIME=0
+      [ -f "$CHANGE_DIR/tasks.md" ] && TASKS_MTIME=$(stat -f %m "$CHANGE_DIR/tasks.md" 2>/dev/null || stat -c %Y "$CHANGE_DIR/tasks.md" 2>/dev/null || echo 0)
+      CACHED_MTIME=0
+      [ -f "$CACHE_FILE" ] && CACHED_MTIME=$(jq -r '.mtime // 0' "$CACHE_FILE" 2>/dev/null)
+
+      if [ "$TASKS_MTIME" -gt 0 ] && [ "$TASKS_MTIME" = "$CACHED_MTIME" ]; then
+        OS_STATUS_JSON=$(jq -c '.status' "$CACHE_FILE" 2>/dev/null)
+      else
+        OS_STATUS_JSON=$(cd "$PROJ_DIR" && openspec status --change "$ACTIVE_CHANGE" --json 2>/dev/null)
+        if [ -n "$OS_STATUS_JSON" ] && [ "$TASKS_MTIME" -gt 0 ]; then
+          mkdir -p "$CACHE_DIR" 2>/dev/null
+          jq -n --argjson mtime "$TASKS_MTIME" --argjson status "$OS_STATUS_JSON" \
+            '{mtime:$mtime, status:$status}' > "$CACHE_FILE" 2>/dev/null
+        fi
+      fi
+
       if [ -n "$OS_STATUS_JSON" ]; then
         ART_TOTAL=$(echo "$OS_STATUS_JSON" | jq -r '.artifacts | length // 0' 2>/dev/null)
         ART_DONE=$(echo "$OS_STATUS_JSON"  | jq -r '[.artifacts[]? | select(.status=="done")]    | length // 0' 2>/dev/null)

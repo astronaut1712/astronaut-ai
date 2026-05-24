@@ -40,9 +40,12 @@ DON'T surface unprompted in:
 For a change with both OpenSpec tasks AND GSD plans, use whichever is more granular:
 
 ```bash
-# OpenSpec change tasks
-TOTAL=$(grep -c '^- \[' openspec/changes/<change>/tasks.md)
-DONE=$(grep -c '^- \[x\]' openspec/changes/<change>/tasks.md)
+# OpenSpec change tasks — match indented sub-tasks too (statusline + /review use same regex)
+TOTAL=$(grep -cE '^[[:space:]]*- \[[ xX-]\]' openspec/changes/<change>/tasks.md 2>/dev/null)
+DONE=$(grep  -cE '^[[:space:]]*- \[[xX]\]'   openspec/changes/<change>/tasks.md 2>/dev/null)
+
+# Authoritative artifact status from openspec CLI:
+openspec status --change <change> --json | jq '.artifacts | map({(.id): .status}) | add'
 
 # GSD plans in a phase
 TOTAL_PLANS=$(ls .planning/phases/<NN>-<change>/[0-9]*-PLAN.md | wc -l)

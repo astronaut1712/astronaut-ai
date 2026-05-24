@@ -63,6 +63,37 @@ Do NOT collapse these. The outer `marketplace.json` lists plugins by `source: ./
 - **Skills** (`skills/<name>/SKILL.md`) auto-activate from their `description:` frontmatter. The description is the only trigger signal — be specific about when to activate (e.g. "when the user mentions a Jira key like PROJ-123"). Skills under `plugins/mina/skills/` become Claude Code skills on install; the same dir is symlinked into opencode's `skills/` by `install.sh`.
 - **Commands** (`commands/<name>.md`) are user-invoked slash commands. In marketplace install they become `/mina:<name>`; manual install via `install.sh` drops them flat as `/<name>`. This is intentional — document both forms.
 
+### Canonical atomic state-write pattern
+
+Every command that mutates `.mina/state.json` MUST follow this pattern (and not `jq … > file` directly — jq exits 0 on schema mismatch then writes empty, silently zeroing state):
+
+```bash
+TMP=$(mktemp -t mina-state-XXXX) || exit 1
+jq … "$STATE" > "$TMP"
+if [ -s "$TMP" ]; then
+  mv "$TMP" "$STATE"
+else
+  rm -f "$TMP"
+  echo "✗ jq produced empty output; state untouched."
+  exit 1
+fi
+```
+
+Three invariants: `mktemp` (no predictable path collisions between concurrent runs), `[ -s "$TMP" ]` size check before `mv`, and `--arg`/`--argjson` for ALL user-provided strings inside the jq expression (never string-interpolate `'…$VAR…'` into jq — breaks on quotes, dollars, backslashes).
+
+### State-schema version vs plugin version
+
+`.mina/state.json.version` (`"1.3"`) is the **state schema** version; `plugin.json.version` (`1.4.x`) is the **plugin** version. They're independent. Plugin 1.4.0 added `recommended_model`, `active_tier`, `switch_reason`, and `reviewed` history events — all additive, no schema bump. Bump the schema version only when an existing field's meaning changes or a required field is added; then write a migration in CHANGELOG and gate readers on the schema number.
+
+### Statusline caching
+
+The hook runs after every assistant message. Anything slower than ~50ms shows up as visible lag. Current caches:
+
+- `.mina/.statusline-cache-<change>.json` — `openspec status --json` result keyed by `openspec/changes/<change>/tasks.md` mtime. Invalidated automatically when tasks.md changes.
+- `.mina/tokens/.last-cost-<session-id-prefix>` — cumulative cost snapshot used to compute per-message delta.
+
+If you add another slow command to the hook, cache it the same way: `stat -f %m` (BSD) with `stat -c %Y` (GNU) fallback, keyed on the file most likely to change when the cached value should update. Never call CLIs unconditionally per-message.
+
 ### Runtime state contract (user-side, not in this repo)
 
 The plugin assumes a `.mina/` directory in the user's working project:

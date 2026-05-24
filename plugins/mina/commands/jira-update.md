@@ -105,7 +105,7 @@ DO NOT include cost data if Jira is customer-visible (service desk tickets).
 
 ## Step 5 — Confirm before write
 
-Show the user the composed comment AND the proposed transition. NEVER auto-execute.
+Show the user the composed comment. NEVER auto-execute.
 
 ```
 About to update <KEY>:
@@ -113,39 +113,37 @@ About to update <KEY>:
 1. Add comment:
    <show the comment>
 
-2. Transition: <current-status> → "In Review"
-   (or "Done" — pick based on team workflow, ask if uncertain)
-
-3. Optional: set fix version to <next-version>
-   (skip if uncertain)
-
 Proceed? [Y/n/edit]
 ```
 
 If user picks "edit" — let them rewrite the comment.
 
-## Step 6 — Execute updates
+No status transition is offered or executed. Transitioning is a workflow
+trigger (SLA timers, auto-assign, deployment pipelines, customer comms) that
+shouldn't fire from a documentation-style command. If the user wants to
+transition, they do it themselves in Jira or via `acli jira workitem
+transition <KEY> --status <status>` (syntax in the `jira-via-acli` skill).
 
-Try Atlassian MCP first (`jira_add_comment`, `jira_transition_issue`).
-Fall back to acli:
+## Step 6 — Post the comment
+
+Try Atlassian MCP first (`jira_add_comment`). Fall back to acli:
 
 ```bash
-# Comment (use file for multi-line)
-echo "<comment-text>" > /tmp/jira-comment-<key>.md
-acli jira workitem comment <KEY> --body-file /tmp/jira-comment-<key>.md
-rm /tmp/jira-comment-<key>.md
-
-# Transition (verify available transitions first)
-acli jira workitem transitions <KEY>
-acli jira workitem transition <KEY> --status "In Review"
+# Comment (use file for multi-line; mktemp to avoid /tmp race)
+TMP=$(mktemp -t mina-jira-comment-XXXX) || exit 1
+printf '%s\n' "<comment-text>" > "$TMP"
+acli jira workitem comment <KEY> --body-file "$TMP"
+rm -f "$TMP"
 ```
+
+Do NOT call `acli jira workitem transition` — explicitly out of scope.
 
 ## Step 7 — Suggest archival
 
 ```
 ✓ <KEY> updated.
   Comment: posted
-  Status: <new-status>
+  (Status unchanged — transition manually in Jira if needed)
 
 Next:
   openspec archive <change-name>
@@ -157,7 +155,7 @@ Archive now? [y/N]
 
 ## Watchouts
 
-- **Never** auto-transition to "Done" without explicit user confirm — that often triggers cross-team workflows (deployment, release notes, customer comms)
+- **Do not transition status from this command.** Transition is a workflow trigger (SLA timers, auto-assign, deployment pipelines, customer comms). The user owns that decision.
 - **Don't** include token output, full file diffs, or test logs in the comment — keep it under 1KB
 - **Don't** mention internal-only paths or secrets in the comment if Jira is visible to customers
 - If on a service desk ticket, the comment is visible to the customer — phrase accordingly (no internal jargon, no sub-task chatter)

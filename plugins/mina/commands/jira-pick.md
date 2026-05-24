@@ -75,13 +75,12 @@ Acceptance criteria:
   ☐ Module Federation manifests still resolve client-side
   ☐ TTFB < 200ms on staging
 
-OpenSpec change: <found-name> | not yet created
+OpenSpec change: <found-name>   (or "not yet created — run /jira-to-spec ENG-1234")
 
 Next:
   (a) Create OpenSpec change   → /jira-to-spec ENG-1234
   (b) Quick mode, skip spec     → /gsd-quick "implement ENG-1234"
-  (c) Just transition to In Progress, plan later
-  (d) Cancel
+  (c) Cancel
 ```
 
 ## Step 5 — Security check

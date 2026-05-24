@@ -57,19 +57,30 @@ jq -s '{
 Use ccusage as authoritative — it parses the JSONL session files directly:
 
 ```bash
+# Portable date arithmetic — GNU `date -d` is Linux-only, BSD/macOS needs `date -v`.
+date_minus_days() {
+  local days="$1" fmt="$2"
+  if date -v-1d +%s >/dev/null 2>&1; then
+    date -v-"$days"d +"$fmt"        # BSD / macOS
+  else
+    date -d "$days days ago" +"$fmt" # GNU / Linux
+  fi
+}
+
 # Today
 npx ccusage daily --since "$(date +%Y%m%d)" --until "$(date +%Y%m%d)" --json
 
 # Week
-npx ccusage daily --since "$(date -d '7 days ago' +%Y%m%d)" --until "$(date +%Y%m%d)" --json
+SINCE_DATE=$(date_minus_days 7 %Y%m%d)
+SINCE_ISO=$(date_minus_days 7 %Y-%m-%dT%H:%M:%SZ)
+npx ccusage daily --since "$SINCE_DATE" --until "$(date +%Y%m%d)" --json
 
 # Also combine with .mina/tokens/ data to attribute to changes
 for f in .mina/tokens/*.jsonl; do
   CHANGE=$(basename "$f" .jsonl)
-  if [ "$CHANGE" = "_session" ] || [[ "$CHANGE" == _session-* ]]; then continue; fi
-  # filter by date and sum
-  COST=$(jq -s --arg since "$(date -d '7 days ago' -Iseconds)" \
-    '[.[] | select(.ts >= $since)] | map(.cost_usd) | add // 0' "$f")
+  case "$CHANGE" in _session|_session-*) continue ;; esac
+  COST=$(jq -s --arg since "$SINCE_ISO" \
+    '[.[] | select(.ts >= $since)] | map(.cost_usd // 0) | add // 0' "$f")
   echo "$CHANGE: \$$COST"
 done
 ```

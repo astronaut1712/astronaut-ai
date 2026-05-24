@@ -5,6 +5,36 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] — 2026-05-24
+
+### Changed
+- **User-visible workflow change — no /mina:* command transitions Jira status anymore.** Plugin commands post comments only; transitioning is the user's manual action (Jira UI or `acli jira workitem transition <KEY> --status <status>`, documented in the `jira-via-acli` skill). Transitions trigger SLA timers, auto-assign rules, deployment pipelines, and customer comms — too much blast radius for a documentation-style command.
+  - `/mina:jira-to-spec` Step 10: removed the "transition to In Progress" prompt and the `acli ... transition` call. Comment posting at spec creation is unchanged.
+  - `/mina:jira-pick` Step 4: removed the `(c) Just transition to In Progress, plan later` menu option; renumbered Cancel to `(c)`.
+  - `/mina:jira-update` Step 5-7: removed the "Transition to In Review/Done" prompt, the `acli jira workitem transitions` listing, and the `acli jira workitem transition` call. Step 6 now also uses `mktemp -t mina-jira-comment-XXXX` instead of `/tmp/jira-comment-<key>.md` (predictable path race fix).
+  - `/mina:complete` Step 7 follow-up suggestion: updated to "post summary comment to Jira (no transition)".
+  - `spec-driven-workflow` skill and `templates/CLAUDE.md.snippet` anti-pattern rule strengthened from "no transition without confirm" → "no transition from /mina:* commands, period".
+  - README pipeline diagram + command tables updated to read "Jira: commented (transition stays manual)".
+
+### Added
+- `/mina:complete [change] [--no-confirm]` — mark active OpenSpec change complete. Clears `.active.{change,phase,plan,jira_key,...}` in `.mina/state.json` so the statusline drops the change segment on the next message, appends a `completed` history event (preserves `was_active_since`, phase, plan, jira_key for `/mina:resume` recovery), and removes the orphan `.mina/.statusline-cache-<change>.json`. Local pointer only — does not modify code, openspec/, or Jira. Default-N confirm when `tasks.md` has unchecked items to prevent premature completion. Token logs under `.mina/tokens/<change>.jsonl` are kept for historical reporting.
+
+### Fixed
+- `/checkpoint --restore`: atomic state write via `mktemp` + size check; use `jq --arg` instead of single-quote string interpolation (broke on names with quotes); backup of current state now happens after user confirmation (aborted restore no longer leaves orphaned `<name>-previous-<ts>.json`)
+- `/checkpoint` save: parse `NOTES` from `$ARGUMENTS` correctly (`${@:2}` doesn't work for slash commands — args arrive as a single string, not positional)
+- `/processes --prune`: removed dead first jq pipeline that wrote then discarded; use `mktemp` and IFS-safe `read -r`; size-check before clobbering state
+- `/processes --kill`: cross-check `ps -p $PID -o command=` against tracked command before SIGTERM to detect PID reuse
+- `/token-report` week/today scopes: portable date arithmetic via `date -v-Nd` (BSD/macOS) with `date -d 'N days ago'` (GNU/Linux) fallback — week scope was broken on macOS
+- `progress-tracking` skill: grep regex now matches indented sub-tasks (`^[[:space:]]*- \[[ xX-]\]`), consistent with statusline + `/review`; added `openspec status --json` snippet
+- `process-resume` skill: state.json sample updated with v1.4 fields (`recommended_model`, `active_tier`, `switch_reason`, `reviewed` history event); clarified that state schema version is decoupled from plugin version
+- `/jira-pick`: confusing `| not yet created` pipe in output replaced with explicit alternative phrasing
+
+### Performance
+- `statusline.sh`: cache `openspec status --json` result by `tasks.md` mtime at `.mina/.statusline-cache-<change>.json`. Previously called the CLI every assistant message (~200-500ms on large repos); now only re-invokes when the change actually moved. Portable mtime via `stat -f %m` / `stat -c %Y`
+
+### Documentation
+- `CLAUDE.md`: added canonical atomic state-write pattern (mktemp + size check + `--arg`), state-schema-vs-plugin-version note, and statusline caching guidance
+
 ## [1.4.0] — 2026-05-24
 
 ### Added
