@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `/review` command — read-only review of uncommitted + branch diff against the active OpenSpec change. Cross-checks `openspec validate`, artifact status, task completion, spec-delta requirement coverage, and a code-review pass categorized as Bug / Security / Spec-drift / Error-handling / Test-gap / API / Performance / Style. Emits a severity-tagged report (BLOCKER / HIGH / MEDIUM / LOW) with a verdict (APPROVE / APPROVE WITH NITS / REQUEST CHANGES / BLOCK) and best-effort test signal. Supports `--staged`, `--branch`, `--since=<ref>` scopes, and resolution by change name or Jira key. Appends a `reviewed` event to `.mina/state.json` history.
+
+### Changed
+- Replaced GSD install reference `npx get-shit-done-cc@latest` → `npx @opengsd/get-shit-done-redux@latest` in `README.md`, `install.sh`, and `plugins/mina/README.md`
+- Statusline OpenSpec progress now sources from `openspec status --change <name> --json` (authoritative artifact state) and falls back to a corrected `tasks.md` checkbox count. New segment `N/M art` shows artifact completion (done/total) with `!K` red marker when K artifacts are blocked; the existing `N/M tasks` segment now counts indented sub-tasks via `^[[:space:]]*- \[[ xX-]\]` instead of only top-level `^- \[`.
+
 ## [1.3.0] — 2026-05-15
 
 ### Added

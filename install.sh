@@ -130,7 +130,7 @@ show_post_install() {
   echo ""
   echo "  3. Install runtime tools (if not already):"
   echo "       npm install -g @fission-ai/openspec && openspec init"
-  echo "       npx get-shit-done-cc@latest    # if using GSD"
+  echo "       npx @opengsd/get-shit-done-redux@latest    # if using GSD"
   echo ""
   echo "  4. (Optional) Enable cost-tracking statusline:"
   if ! command -v jq >/dev/null 2>&1; then

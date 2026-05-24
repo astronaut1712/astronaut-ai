@@ -32,12 +32,13 @@ Jira: commented, transitioned
 - `progress-tracking` — aggregates OpenSpec tasks + GSD plans + git state + cost into a unified view; surfaces mini-status at session start and after task completion
 - `process-resume` — maps prior sessions / changes / background processes to a clear resume path; covers both Claude Code session resume and workflow resume
 
-**Eleven slash commands:**
+**Twelve slash commands:**
 
 - `/mina:jira-pick` — list Jira issues and pick one to start
 - `/mina:jira-to-spec <KEY>` — convert Jira issue → OpenSpec change (initializes `.mina/state.json`)
 - `/mina:spec-to-plan <change-name>` — bridge OpenSpec → GSD or Superpowers plan
 - `/mina:jira-update <change-or-key>` — write back to Jira after implementation
+- `/mina:review [change | --staged | --branch | --since=<ref>]` — read-only review of changes against the active OpenSpec change; severity-tagged report with verdict
 - `/mina:token-report [scope]` — token usage and cost report, per-change or aggregate
 - `/mina:model-route [task]` — show recommended model + reason
 - `/mina:model-switch <tier>` — record intent to switch to a fallback tier
@@ -68,7 +69,7 @@ The plugin is the glue — runtime tools are not bundled:
 | Tool | Required? | Install |
 |---|---|---|
 | OpenSpec | Yes | `npm install -g @fission-ai/openspec` |
-| GSD | One of GSD or Superpowers | `npx get-shit-done-cc@latest` |
+| GSD | One of GSD or Superpowers | `npx @opengsd/get-shit-done-redux@latest` |
 | Superpowers | One of GSD or Superpowers | `/plugin install superpowers@superpowers-marketplace` |
 | Atlassian MCP | Recommended | See top-level `templates/mcp.json.example` |
 | acli | Fallback for Jira | `brew install --cask acli` |

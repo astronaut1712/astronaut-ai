@@ -7,7 +7,13 @@
 #      which change/phase is active
 #   3. Appends one JSONL line to .mina/tokens/<change>.jsonl (or _session-<id>.jsonl if no change)
 #   4. Prints a compact statusline:
-#        🤖 opus | 💰 $0.23 sess | 🧠 45% ctx | 📝 feat-add-dashboard-ssr
+#        🤖 opus | 💰 $0.23 sess | 🧠 45% ctx | 📝 feat-add-dashboard-ssr · 3/4 art · 5/8 tasks
+#
+#      Progress segments (when an OpenSpec change is active):
+#        - `N/M art`   — artifact completion from `openspec status --change <name> --json`
+#                        (done count / total). Adds `!K` in red if K artifacts are blocked.
+#        - `N/M tasks` — checkbox completion from openspec/changes/<change>/tasks.md
+#                        (counts nested sub-tasks too).
 #
 # Install:
 #   Add to ~/.claude/settings.json or project .claude/settings.json:
@@ -215,7 +221,7 @@ if [ -n "$ACTIVE_CHANGE" ]; then
   [ -n "$JIRA_KEY" ] && TAG="$JIRA_KEY $ACTIVE_CHANGE"
   OUT="$OUT ${DIM}|${RESET} 📝 $TAG"
 
-  # Task progress: prefer GSD plans if phase active, else OpenSpec tasks
+  # Task progress: prefer GSD plans if phase active, else OpenSpec status
   if [ -n "$ACTIVE_PHASE" ]; then
     PHASE_DIR=$(ls -d "$PROJ_DIR/.planning/phases/${ACTIVE_PHASE}-"* 2>/dev/null | head -1)
     if [ -n "$PHASE_DIR" ]; then
@@ -227,10 +233,31 @@ if [ -n "$ACTIVE_CHANGE" ]; then
       done
       [ "$TOTAL_PLANS" -gt 0 ] && OUT="$OUT ${DIM}·${RESET} ${DONE_PLANS}/${TOTAL_PLANS} plans"
     fi
-  elif [ -f "$PROJ_DIR/openspec/changes/$ACTIVE_CHANGE/tasks.md" ]; then
-    OS_TOTAL=$(grep -c '^- \[' "$PROJ_DIR/openspec/changes/$ACTIVE_CHANGE/tasks.md" 2>/dev/null)
-    OS_DONE=$(grep -c '^- \[x\]' "$PROJ_DIR/openspec/changes/$ACTIVE_CHANGE/tasks.md" 2>/dev/null)
-    [ "$OS_TOTAL" -gt 0 ] && OUT="$OUT ${DIM}·${RESET} ${OS_DONE}/${OS_TOTAL} tasks"
+  else
+    CHANGE_DIR="$PROJ_DIR/openspec/changes/$ACTIVE_CHANGE"
+    TASKS_FILE="$CHANGE_DIR/tasks.md"
+
+    # 1. Artifact-level progress via openspec CLI (authoritative)
+    # Run from PROJ_DIR so openspec finds the project. Suppress all output on failure.
+    if [ -d "$CHANGE_DIR" ] && command -v openspec >/dev/null 2>&1; then
+      OS_STATUS_JSON=$(cd "$PROJ_DIR" && openspec status --change "$ACTIVE_CHANGE" --json 2>/dev/null)
+      if [ -n "$OS_STATUS_JSON" ]; then
+        ART_TOTAL=$(echo "$OS_STATUS_JSON" | jq -r '.artifacts | length // 0' 2>/dev/null)
+        ART_DONE=$(echo "$OS_STATUS_JSON"  | jq -r '[.artifacts[]? | select(.status=="done")]    | length // 0' 2>/dev/null)
+        ART_BLOCKED=$(echo "$OS_STATUS_JSON" | jq -r '[.artifacts[]? | select(.status=="blocked")] | length // 0' 2>/dev/null)
+        if [ "${ART_TOTAL:-0}" -gt 0 ]; then
+          OUT="$OUT ${DIM}·${RESET} ${ART_DONE}/${ART_TOTAL} art"
+          [ "${ART_BLOCKED:-0}" -gt 0 ] && OUT="$OUT ${RED}!${ART_BLOCKED}${RESET}"
+        fi
+      fi
+    fi
+
+    # 2. Task-level progress from tasks.md (counts nested checkboxes too)
+    if [ -f "$TASKS_FILE" ]; then
+      OS_TOTAL=$(grep -cE '^[[:space:]]*- \[[ xX-]\]' "$TASKS_FILE" 2>/dev/null)
+      OS_DONE=$(grep  -cE '^[[:space:]]*- \[[xX]\]'   "$TASKS_FILE" 2>/dev/null)
+      [ "${OS_TOTAL:-0}" -gt 0 ] && OUT="$OUT ${DIM}·${RESET} ${OS_DONE}/${OS_TOTAL} tasks"
+    fi
   fi
 fi
 
