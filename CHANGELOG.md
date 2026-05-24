@@ -5,7 +5,7 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] — 2026-05-24
 
 ### Added
 - `/review` command — read-only review of uncommitted + branch diff against the active OpenSpec change. Cross-checks `openspec validate`, artifact status, task completion, spec-delta requirement coverage, and a code-review pass categorized as Bug / Security / Spec-drift / Error-handling / Test-gap / API / Performance / Style. Emits a severity-tagged report (BLOCKER / HIGH / MEDIUM / LOW) with a verdict (APPROVE / APPROVE WITH NITS / REQUEST CHANGES / BLOCK) and best-effort test signal. Supports `--staged`, `--branch`, `--since=<ref>` scopes, and resolution by change name or Jira key. Appends a `reviewed` event to `.mina/state.json` history.
