@@ -1,6 +1,6 @@
 # mina
 
-A Claude Code plugin (also works with opencode) that wires together Jira, OpenSpec, GSD, and Superpowers into a single spec-driven pipeline.
+A Claude Code plugin (also installs into opencode, Codex, Pi, Kiro, Kilo Code via `install.sh`) that wires together Jira, OpenSpec, GSD, and Superpowers into a single spec-driven pipeline.
 
 ## Pipeline
 
@@ -61,7 +61,7 @@ Jira: commented (transition stays manual)
 └── checkpoints/<name>.json   ← named state snapshots
 ```
 
-(When installed via marketplace, commands are namespaced as `/mina:<name>`. When installed manually into `.claude/commands/`, they're flat: `/jira-pick` etc.)
+(When installed via marketplace, commands are namespaced as `/mina:<name>`. When installed manually into `.claude/commands/`, they're flat: `/jira-pick` etc. Codex/Pi use the same flat slash-command surface; Kiro/Kilo have no slash command system — the commands ship as a single `mina-commands-reference.md` for human invocation.)
 
 ## Prerequisites
 

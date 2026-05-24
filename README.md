@@ -21,12 +21,24 @@ Jira  →  /jira-pick → /jira-to-spec  →  OpenSpec  →  /spec-to-plan  → 
 /plugin marketplace add astronaut1712/astronaut-ai
 /plugin install mina@mina        # commands become /mina:<cmd>
 
-# opencode or manual Claude Code install
+# Any other supported tool
 git clone https://github.com/astronaut1712/astronaut-ai.git && cd astronaut-ai
-./install.sh opencode            # or: claude-code | both     (add --user for global)
+./install.sh <target>            # claude-code | opencode | codex | pi | kiro | kilo | both | all
+                                 # add --user for global scope
 ```
 
-Marketplace install gives namespaced commands (`/mina:review`); manual install gives flat (`/review`).
+Supported targets:
+
+| Target | Layout written | Commands surface |
+|---|---|---|
+| `claude-code` | `.claude/{skills,commands}/` | `/<name>` (manual) or `/mina:<name>` (marketplace) |
+| `opencode` | `.opencode/{skills,command}/` | `/<name>` |
+| `codex` | `.codex/{skills,prompts}/` | `/<name>` (frontmatter cleaned — `tools`/`model` dropped) |
+| `pi` | `.pi/agent/git/astronaut-ai/{skills,prompts}/` | `/<name>` after `pi config` (or `pi install git:github.com/astronaut1712/astronaut-ai`) |
+| `kiro` | `.kiro/steering/` | No slash commands — workflow steps in `mina-commands-reference.md` |
+| `kilo` | `.kilocode/rules/` | No slash commands — workflow steps in `mina-commands-reference.md` |
+
+Marketplace install gives namespaced commands (`/mina:review`); manual install gives flat (`/review`). Kiro/Kilo skills become always-on rules (no auto-trigger semantics).
 
 ## Commands
 

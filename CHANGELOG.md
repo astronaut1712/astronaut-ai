@@ -5,7 +5,16 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.0] — 2026-05-24
+## [1.6.0] — 2026-05-24
+
+### Added
+- `install.sh` now supports four additional CLI tools beyond `claude-code` and `opencode`:
+  - **`codex`** — installs to `.codex/{skills,prompts}/` (or `$CODEX_HOME` with `--user`). SKILL.md frontmatter is cleaned during copy (`tools:` and `model:` lines stripped — Codex spec rejects them). Skill body kept verbatim.
+  - **`pi`** — installs to `.pi/agent/git/astronaut-ai/{skills,prompts}/` matching Pi's git-package convention. Auto-writes a minimal `package.json` with the `pi` manifest so `pi list` / `pi config` recognize the package. Alternative: `pi install git:github.com/astronaut1712/astronaut-ai` (no install.sh needed).
+  - **`kiro`** — installs to `.kiro/steering/`. Skills are written as plain markdown rule docs (YAML frontmatter stripped, "Always-on rule" header injected); commands are concatenated into a single `mina-commands-reference.md` for human invocation. Kiro has no slash-command surface — skills become always-on context, not auto-triggered.
+  - **`kilo`** — installs to `.kilocode/rules/` with the same flat-rules + reference-doc shape as Kiro.
+  - New `all` target installs every supported tool at project scope in one shot.
+  - Interactive picker expanded from 4 → 9 options.
 
 ### Changed
 - **User-visible workflow change — no /mina:* command transitions Jira status anymore.** Plugin commands post comments only; transitioning is the user's manual action (Jira UI or `acli jira workitem transition <KEY> --status <status>`, documented in the `jira-via-acli` skill). Transitions trigger SLA timers, auto-assign rules, deployment pipelines, and customer comms — too much blast radius for a documentation-style command.
