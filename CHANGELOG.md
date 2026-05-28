@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] — 2026-05-29
+
+### Added
+- `/mina:doctor [--verbose] [--json]` — read-only health check covering dep presence (mirrors `/mina:init`'s list), `.mina/state.json` integrity (parses, schema version 1.3/1.4 recognized, active-change pointer resolves to a real `openspec/changes/<name>` dir), statusline hook wiring (extracted from `~/.claude/settings.json` → `statusLine.command`, file exists + executable), env + auth posture (`ATLASSIAN_AUTH` set + plausible length, `.mcp.json` has an atlassian server entry, `CLAUDE.md` contains the spec-driven snippet), `openspec validate` clean, `.mina/tokens/` writable so the statusline can log. Per-check status is `✓ pass | ⚠ warn | ✗ fail`. Exits non-zero on any fail (wireable into CI). `--json` emits a stable two-object shape (results array + summary) for downstream scripts. Never installs, mutates, or makes network calls — pair with `/mina:init` (which does the fixes).
+- `/mina:init [--yes] [--skip=<dep,dep>]` — detect and install runtime dependencies that the plugin depends on but does not bundle: `jq`, `openspec` (and runs `openspec init` if the project has no `openspec/` directory), GSD (npx-on-demand — no install), Superpowers (Claude Code plugin — prints `/plugin install` hint since shell cannot reach the marketplace), `graphify-rs` (Rust CLI for knowledge graph; `cargo install graphify-rs`), and `acli` (Atlassian CLI fallback). Detection is read-only by default; each install requires explicit confirmation (or `--yes` to batch). `--skip=name,name` opts out per run. Idempotent on already-installed deps. Platform-branches install commands across macOS (brew) and Linux (apt/cargo). No `curl … | sh`, no `sudo` except where apt requires it. Step 6 prints env-var + `.mcp.json` + `CLAUDE.md` snippet reminders for state the command intentionally does not auto-write (credentials live with the user, not the installer).
+
+### Changed
+- Command count: thirteen → fifteen. Plugin description, marketplace description, top README commands table, and `plugins/mina/README.md` updated accordingly.
+
 ## [1.6.0] — 2026-05-24
 
 ### Added

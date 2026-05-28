@@ -14,6 +14,45 @@ Jira  →  /jira-pick → /jira-to-spec  →  OpenSpec  →  /spec-to-plan  → 
                                                                       Jira: commented (transition stays manual)
 ```
 
+## Demo
+
+![mina workflow demo](docs/demo.gif)
+
+_(GIF not recorded yet — drop a capture at `docs/demo.gif` to populate. See [`docs/README.md`](docs/README.md) for how to record one.)_
+
+### What it looks like in your terminal
+
+**Statusline** (after every assistant message, when an OpenSpec change is active):
+
+```
+🤖 opus | 💰 $0.23 | 🧠 45% | 📝 ENG-1234 feat-add-dashboard-ssr · 3/4 art · 5/8 tasks · ⚙ 2
+```
+
+Decoded:
+- `🤖 opus` — active model
+- `💰 $0.23` — session cost so far (green / yellow / red as it grows)
+- `🧠 45%` — context window fill
+- `📝 ENG-1234 feat-add-dashboard-ssr` — Jira key + active OpenSpec change
+- `3/4 art` — OpenSpec artifact completion (from `openspec status --json`, cached by `tasks.md` mtime)
+- `5/8 tasks` — checkbox completion in `openspec/changes/<change>/tasks.md`
+- `⚙ 2` — alive background processes registered with `/mina:processes`
+
+If a cost cap is hit: `⚠ cap $5.23/$5.00`. If active model drifts from `/mina:model-route` recommendation: `↪ try sonnet`.
+
+**Typical session**
+
+```
+$ claude
+> /mina:jira-pick                          # picks ENG-1234
+> /mina:jira-to-spec ENG-1234              # scaffolds openspec/changes/feat-add-dashboard-ssr/
+> /mina:spec-to-plan feat-add-dashboard-ssr
+                                           # builds .planning/phases/03-…/ with wave graph
+> /gsd-execute-phase 03                    # execute (GSD handles subagents, TDD, etc.)
+> /mina:review                             # spec-aware diff review with severity verdict
+> /mina:jira-update feat-add-dashboard-ssr # post summary comment (no status transition)
+> /mina:complete                           # clear .active pointer · statusline drops the change
+```
+
 ## Supported tools
 
 | Tool | Fidelity | Install path | Skills | Slash commands | Statusline |
@@ -66,6 +105,8 @@ git clone https://github.com/astronaut1712/astronaut-ai.git && cd astronaut-ai
 
 | Command | Purpose |
 |---|---|
+| `/mina:init [--yes] [--skip=<dep,...>]` | Detect + install runtime deps (`jq`, `openspec`, `gsd`, Superpowers, `graphify-rs`, `acli`); runs `openspec init` if missing |
+| `/mina:doctor [--verbose] [--json]` | Read-only health check (deps, state, statusline hook, env, openspec validate); non-zero exit on fail |
 | `/mina:jira-pick` | List Jira issues, pick one to start |
 | `/mina:jira-to-spec <KEY>` | Convert Jira issue → OpenSpec change; initializes `.mina/state.json` |
 | `/mina:spec-to-plan <change>` | Bridge OpenSpec → GSD phase or Superpowers plan |

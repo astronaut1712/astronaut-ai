@@ -32,8 +32,10 @@ Jira: commented (transition stays manual)
 - `progress-tracking` — aggregates OpenSpec tasks + GSD plans + git state + cost into a unified view; surfaces mini-status at session start and after task completion
 - `process-resume` — maps prior sessions / changes / background processes to a clear resume path; covers both Claude Code session resume and workflow resume
 
-**Thirteen slash commands:**
+**Fifteen slash commands:**
 
+- `/mina:init [--yes] [--skip=<dep,...>]` — detect and install runtime deps (`jq`, `openspec`, `gsd` via npx, Superpowers, `graphify-rs`, `acli`); runs `openspec init` if no `openspec/` dir. Read-only detection by default; each install gated by confirm. Idempotent.
+- `/mina:doctor [--verbose] [--json]` — read-only health check: deps, `.mina/state.json` integrity, statusline hook wiring, env/auth, `openspec validate`, token-log writability. Exits non-zero on any fail (CI-wireable).
 - `/mina:jira-pick` — list Jira issues and pick one to start
 - `/mina:jira-to-spec <KEY>` — convert Jira issue → OpenSpec change (initializes `.mina/state.json`)
 - `/mina:spec-to-plan <change-name>` — bridge OpenSpec → GSD or Superpowers plan
