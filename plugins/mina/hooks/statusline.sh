@@ -50,12 +50,28 @@ CWD=$(get '.cwd')
 MODEL_NAME=$(get '.model.display_name')
 [ -z "$MODEL_NAME" ] && MODEL_NAME=$(get '.model.id')
 TOTAL_COST=$(get_num '.cost.total_cost_usd')
+TRANSCRIPT=$(get '.transcript_path')
 
-# Newer Claude Code versions provide token counts; older might not
-INPUT_TOKENS=$(get_num '.cost.total_input_tokens')
-OUTPUT_TOKENS=$(get_num '.cost.total_output_tokens')
-CACHE_READ=$(get_num '.cost.total_cache_read_input_tokens')
-CACHE_CREATE=$(get_num '.cost.total_cache_creation_input_tokens')
+# Token counts: Claude Code's statusline stdin does NOT include token fields
+# (only .cost.total_cost_usd is provided). Read per-turn usage from the
+# transcript JSONL instead — each assistant line has .message.usage with
+# per-message input/output/cache figures. Tail-bounded so cost stays O(1)
+# per assistant message on long sessions.
+INPUT_TOKENS=0
+OUTPUT_TOKENS=0
+CACHE_READ=0
+CACHE_CREATE=0
+if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
+  USAGE_LINE=$(tail -200 "$TRANSCRIPT" 2>/dev/null \
+    | jq -c 'select(.type=="assistant" and .message.usage != null) | .message.usage' 2>/dev/null \
+    | tail -1)
+  if [ -n "$USAGE_LINE" ]; then
+    INPUT_TOKENS=$(echo  "$USAGE_LINE" | jq -r '.input_tokens                // 0' 2>/dev/null)
+    OUTPUT_TOKENS=$(echo "$USAGE_LINE" | jq -r '.output_tokens               // 0' 2>/dev/null)
+    CACHE_READ=$(echo    "$USAGE_LINE" | jq -r '.cache_read_input_tokens     // 0' 2>/dev/null)
+    CACHE_CREATE=$(echo  "$USAGE_LINE" | jq -r '.cache_creation_input_tokens // 0' 2>/dev/null)
+  fi
+fi
 
 # Context fill — estimated from transcript size if not provided directly
 CONTEXT_PCT=$(get_num '.context.fill_percent')
@@ -92,26 +108,24 @@ if [ "${TOTAL_COST}" != "0" ] && [ "${TOTAL_COST}" != "" ]; then
     LOG_FILE="$TOKENS_DIR/_session-$SHORT_ID.jsonl"
   fi
 
-  # Each line is delta-from-last-known total. To avoid double-counting, store
-  # cumulative cost in a sidecar file per session and compute delta on each call.
+  # Cost is cumulative session total → compute delta against sidecar.
+  # Tokens are already per-turn (read from .message.usage of the latest
+  # assistant transcript line), so log directly — no subtraction.
   LAST_FILE="$TOKENS_DIR/.last-cost-$(echo "$SESSION_ID" | cut -c1-8)"
   LAST_COST=0
-  LAST_INPUT=0
-  LAST_OUTPUT=0
   if [ -f "$LAST_FILE" ]; then
-    LAST_COST=$(jq -r '.cost // 0'   "$LAST_FILE" 2>/dev/null || echo 0)
-    LAST_INPUT=$(jq -r '.input // 0'  "$LAST_FILE" 2>/dev/null || echo 0)
-    LAST_OUTPUT=$(jq -r '.output // 0' "$LAST_FILE" 2>/dev/null || echo 0)
+    LAST_COST=$(jq -r '.cost // 0' "$LAST_FILE" 2>/dev/null || echo 0)
   fi
 
-  # Compute deltas
   DELTA_COST=$(awk "BEGIN {print $TOTAL_COST - $LAST_COST}")
-  DELTA_INPUT=$((INPUT_TOKENS - LAST_INPUT))
-  DELTA_OUTPUT=$((OUTPUT_TOKENS - LAST_OUTPUT))
 
-  # Only log if there's actually new activity
+  # Log if cost moved OR tokens for this turn are non-zero (handles the case
+  # where Claude Code reports a flat cost on a cached turn but tokens still flowed).
   POSITIVE_DELTA=$(awk "BEGIN {print ($DELTA_COST > 0) ? 1 : 0}")
-  if [ "$POSITIVE_DELTA" = "1" ]; then
+  HAS_TOKENS=0
+  [ "$INPUT_TOKENS" -gt 0 ] || [ "$OUTPUT_TOKENS" -gt 0 ] && HAS_TOKENS=1
+
+  if [ "$POSITIVE_DELTA" = "1" ] || [ "$HAS_TOKENS" = "1" ]; then
     TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     jq -n \
       --arg ts "$TS" \
@@ -120,8 +134,8 @@ if [ "${TOTAL_COST}" != "0" ] && [ "${TOTAL_COST}" != "" ]; then
       --arg change "$ACTIVE_CHANGE" \
       --arg phase "$ACTIVE_PHASE" \
       --arg jira "$JIRA_KEY" \
-      --argjson input "$DELTA_INPUT" \
-      --argjson output "$DELTA_OUTPUT" \
+      --argjson input "$INPUT_TOKENS" \
+      --argjson output "$OUTPUT_TOKENS" \
       --argjson cache_read "$CACHE_READ" \
       --argjson cache_create "$CACHE_CREATE" \
       --argjson cost "$DELTA_COST" \
@@ -129,13 +143,9 @@ if [ "${TOTAL_COST}" != "0" ] && [ "${TOTAL_COST}" != "" ]; then
       >> "$LOG_FILE" 2>/dev/null
   fi
 
-  # Update last-known-cumulative for next delta calculation
-  jq -n \
-    --argjson cost "$TOTAL_COST" \
-    --argjson input "$INPUT_TOKENS" \
-    --argjson output "$OUTPUT_TOKENS" \
-    '{cost:$cost, input:$input, output:$output}' \
-    > "$LAST_FILE" 2>/dev/null
+  # Update last-known-cumulative cost for next delta calculation.
+  # Tokens are per-turn so no need to persist them.
+  jq -n --argjson cost "$TOTAL_COST" '{cost:$cost}' > "$LAST_FILE" 2>/dev/null
 fi
 
 # ── Model routing check ─────────────────────────────────────────────

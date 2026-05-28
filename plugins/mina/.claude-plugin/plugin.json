@@ -1,6 +1,6 @@
 {
   "name": "mina",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Spec-driven coding workflow plugin. Wires Jira → OpenSpec → GSD/Superpowers → code → Jira, with per-change token tracking, model fallback routing, progress aggregation, session/process resume, named checkpoints, spec-aware code review, a dependency-init command (openspec, gsd, superpowers, graphify-rs, acli, jq), and a read-only doctor for health checks. Seven auto-triggering skills, fifteen commands, a statusline hook with progress and routing warnings, plus a unified .mina/ state layout.",
   "author": {
     "name": "astronaut1712",

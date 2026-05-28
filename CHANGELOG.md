@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] — 2026-05-29
+
+### Fixed
+- **Token tracking always logged `input: 0, output: 0`.** Root cause: `hooks/statusline.sh` was reading `.cost.total_input_tokens` / `.cost.total_output_tokens` from Claude Code's statusline stdin, but those fields do not exist in the statusline JSON contract — only `.cost.total_cost_usd` is provided. Tokens live in the transcript JSONL (`$transcript_path` → per-line `.message.usage`), not the cost object, so the reads always returned 0 via `// 0` fallback.
+  - Fix: extract `transcript_path` from stdin, tail-bounded scan (`tail -200 | jq -c 'select(.type=="assistant" and .message.usage != null)' | tail -1`) for the latest assistant turn, log its `input_tokens` / `output_tokens` / `cache_read_input_tokens` / `cache_creation_input_tokens` directly.
+  - Tokens are per-turn (Anthropic Messages API semantics), not cumulative — removed the now-incorrect `INPUT_TOKENS - LAST_INPUT` delta math. Cost is still cumulative session total, so the cost delta against the `.last-cost-*` sidecar stays. Sidecar slimmed: only `{cost}` persisted now, since tokens no longer need a previous value.
+  - Logging guard widened from "cost moved > 0" to "cost moved OR tokens > 0" so cached turns with flat cost but real token usage still get a log line.
+  - Performance: `tail -200` keeps the transcript read O(1) per assistant message regardless of session length; jq parses ~200 lines in single-digit milliseconds, well under the statusline budget.
+
 ## [1.7.0] — 2026-05-29
 
 ### Added
